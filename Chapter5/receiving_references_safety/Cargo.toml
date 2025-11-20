@@ -1,0 +1,6 @@
+[package]
+name = "receiving_references_as_function_arguments"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]

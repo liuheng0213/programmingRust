@@ -1,0 +1,3 @@
+All Copy types are also Clone, but not all Clone types are Copy
+Copy is available for primitive types like u32 i3,which are in stack
+Clone has to be used for heap-allocated types
