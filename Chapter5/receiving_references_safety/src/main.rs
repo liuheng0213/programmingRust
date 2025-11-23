@@ -18,25 +18,49 @@ fn main() {
 
     // sharing_versus_mutation_error2();
     // simplest_possible_examples1();
-    // simplest_possible_examples2();
-    sharedreference()
+    simplest_possible_examples2();
+    // whatIfBorrowed_error();
+    // whatIfBorrowed_correct();
+    // sharedreference();
+    // testStructLifetime_correct1();
+    // testStructLifetime_string();
+}
+fn whatIfBorrowed_correct() {
+    let v = vec![4, 8, 19, 27, 34, 10];
+    {
+        let r = &v;
+        r[0]; // ok: vector is still there
+    } //r goes out of scope here
+      // r is no longer used, so we can now move v
+    let aside = v;
+    print!("haha. {:?}", aside);
+}
+fn whatIfBorrowed_error() {
+    let v = vec![4, 8, 19, 27, 34, 10];
+    let r = &v;
+
+    //borrow of `v` occurs here
+    // let aside = v; // move vector to aside is not allowed, because r still borrows v
+    v[0]; // bad: uses `v`, which is now uninitialized
 }
 
 fn sharedreference() {
-    let mut x = 42;
-    let p = &x;//// shared reference to i32
-    assert_eq!(*p, 42);
-    x += 1;// // error: cannot assign to x because it is borrowed and p is still in use in line 31
-    // if you take out the assignment, this is true
+    // let mut x = 42;
+    // // shared reference to i32,x is borrowed immutably here
+    // let p = &x;
     // assert_eq!(*p, 42);
-
-
+    // // error: cannot assign to x because it is borrowed and p is still in use in assert_eq!(*p, 42);
+    // x += 1;
+    // // if you take out the assignment, this is true
+    // // assert_eq!(*p, 42);
 }
 
 fn simplest_possible_examples2() {
     //It is OK to reborrow a shared reference from a shared reference:
     let mut w = (107, 109);
+    //r is immutable reference to a tuple
     let r = &w;
+    //because r is immutable reference to w, so r.0 and r.1 are also immutable references to w.0 and w.1
     // ok: reborrowing shared as shared
     let r0 = &r.0;
     // error: can't reborrow shared as mutable
@@ -48,14 +72,16 @@ fn simplest_possible_examples2() {
 
     let mut v = (136, 139);
     let m = &mut v;
-    let m0 = &mut m.0; // ok: reborrowing mutable from mutable
+    let m0 = &mut m.0; // ok: reborrowing mutable from mutable,relationship: v->m->m.0
     *m0 = 137; //After this line, m0 is never used again
-    // ok: reborrowing shared from mutable,
-    // and doesn't overlap with m0
+               // ok: reborrowing shared from mutable,
+               // and doesn't overlap with m0
     let r1 = &m.0;
     let r2 = &m.1;
-    // error: access through other paths still forbidden
-    //v.1;
+    // error: access through other paths still forbidden,because v is still borrowed mutably by m,please see below line  println!("{},{}", r1, r2);
+    //in println!("{},{}", r1, r2); ,it uses r1,meaning it uses m.0, so m is still borrowed mutably here
+    // so v is still borrowed mutably here
+    // v.1;
 
     //if I comment out the below line, r2 ,r1 is not used, so its lifetime ends earlier on line 44
     //then v,1; is ok
@@ -72,9 +98,9 @@ fn simplest_possible_examples1() {
     let mut x = 10;
     let r1 = &x; // immutable borrow
     let r2 = &x; // immutable borrow as well ok: multiple shared immutable borrows permitted
-    // error: cannot assign to `x` because it is borrowed to r1 r2 as immutable
-    //and ri r2 are still in use
-    // x += 10;
+                 // error: cannot assign to `x` because it is borrowed to r1 r2 as immutable
+                 //and ri r2 are still in use
+                 // x += 10;
 
     // error: cannot borrow `x` as mutable because it is
     // also borrowed as immutable
@@ -88,11 +114,12 @@ fn simplest_possible_examples1() {
     // println!("{}, {}, {}", r1, r2, m);
     let mut y = 20;
     let m1 = &mut y;
-    let m2 = &mut y; // error: cannot borrow as mutable more than once
-    let z = y; // error: cannot use `y` because it was mutably borrowed println!("{}, {}, {}", m1, m2, z); // references are used here
+    let m2 = &mut y; // error: cannot borrow as mutable more than once,if there is println!("{}, {}", m1, m2);
+    // let z = y; // error: cannot use `y` because it was mutably borrowed println!("{}, {}, {}", m1, m2, z); // references are used here
 
-    //if I comment out the below line, m2 is not used, so its lifetime ends earlier on line 43
-    //println!("{}, {}, {}", m1, m2, z); // references are used here
+    //if I comment out the below line, m2 is not used, so its lifetime ends earlier after line let m2 = &mut y;
+    //then let z = y; is ok
+    // println!("{}, {}, {}", m1, m2); // references are used here
 }
 
 fn sharing_versus_mutation_error2() {
@@ -105,8 +132,9 @@ fn sharing_versus_mutation_error2() {
     assert_eq!(wave, vec![0.0, 1.0, 0.0, -1.0]);
 
     //First argument: &mut wave → mutable borrow of wave.
-    // Second argument: &wave → immutable borrow of wave.
-    //You cannot have a mutable borrow and any other borrow (mutable or immutable) of the same value active at the same time.
+    //Second argument: &wave → immutable borrow of wave.
+    //You cannot have a mutable borrow and 
+    //any other borrow (mutable or immutable) of the same value active at the same time.
 
     //extend(&mut wave, &wave);
 
@@ -121,11 +149,11 @@ fn sharing_versus_mutation_error2() {
     //similar to java ConcurrentModificationException
     //Java Hashtable: if you structurally modify the hashtable while iterating,
     //the iterator throws ConcurrentModificationException to stop you from accidentally corrupting things.
-    // why clone is needed here:
+    //why clone is needed here:
     //But capacity was 4, so push must:
-    // allocate a new buffer (say capacity 8)
-    // copy the 4 existing elements into the new buffer
-    // free the old 4-element buffer
+    //allocate a new buffer (say capacity 8)
+    //copy the 4 existing elements into the new buffer
+    //free the old 4-element buffer
 
     // Next iteration of for elt in slice:
     // The iterator is still walking over the old buffer.
@@ -153,7 +181,7 @@ fn sharing_versus_mutation_correct() {
         let r = &v;
         r[0]; // ok: vector is still there }
     } //r goes out of scope here
-    // r is no longer used, so we can now move v
+      // r is no longer used, so we can now move v
     let aside = v;
     print!("haha. {:?}", aside);
 }
@@ -166,13 +194,21 @@ impl Holder {
     // Return one of two &str slices from inside self
     //lifetime doesnot work for a non-reference type like String
     fn pick_name_part<'a>(&'a self, flag: bool) -> &'a str {
-        if flag { &self.name } else { &self.other }
+        if flag {
+            &self.name
+        } else {
+            &self.other
+        }
     }
 }
 
 fn self_parameter_lifetime<'a>(a: &'a str, b: &'a str) -> &'a str {
     // OK because we explicitly told Rust that both have the same lifetime 'a
-    if a.len() > b.len() { a } else { b }
+    if a.len() > b.len() {
+        a
+    } else {
+        b
+    }
 }
 
 //This does not compile. The key issues:
@@ -201,7 +237,7 @@ struct S<'a> {
 //Key points:
 // S<'a> says both x and y inside S have the same lifetime 'a.
 // In let s = S { x: &x, y: &y };:
-// &x has the lifetime of x (outer scope, long).
+// &x has the lifetime of x (outer scope, longer).
 // &y has the lifetime of y (inner scope, shorter).
 // Rust must pick one 'a that works for both references.
 // It picks the shorter one: the lifetime of y.
@@ -274,6 +310,7 @@ fn f(p: &'static i32) {
 // From smallest’s signature,
 // we can see that its argument and return value must have the same lifetime, 'a.
 // In our call, the argument &parabola must not outlive parabola itself,
+// any references must not outlive the data they point to.
 // yet smallest’s return value must live at least as long as s.
 fn testSmallest() {
     let s;
@@ -281,10 +318,13 @@ fn testSmallest() {
         let parabola = [9, 4, 1, 0, 1, 4, 9];
         s = smallest(&parabola);
     }
+    //lifetime of &parabola <= lifetime of parabola
+    //however，lifetime of s == lifetime of &parabola in this case
+    //so s will be dangling outside the inner scope
     // assert_eq!(*s, 0); should be moved inside the inner scope
     // assert_eq!(*s, 0); // bad: points to element of dropped array
 }
-// v should have at least one element.
+//v should have at least one element.
 //When a function takes a single reference as an argument
 //and returns a single reference,
 //Rust assumes that the two must have the same lifetime.
@@ -302,8 +342,10 @@ fn smallest(v: &[i32]) -> &i32 {
 fn testStructLifetime_error() {
     // This does not compile.
     //s.r is a reference that must not outlive the owner of the data.
+    //r is a reference, so s.r is also a reference., lifetime of s.r is tied to lifetime of x
+    //But x dies at the end of the inner block,
+    //so s.r would be a dangling reference.
 
-    // But x dies early → dangling reference → compiler error.
     // struct S {
     //     r: &i32,
     // }
@@ -317,7 +359,7 @@ fn testStructLifetime_error() {
 
 fn testStructLifetime_correct1() {
     //You do NOT need a lifetime when the struct contains an owned value (T).
-    // Because owned data lives inside the struct itself, and does not depend on anything external.
+    //Because owned data lives inside the struct itself, and does not depend on anything external.
     struct S {
         r: i32, // OWN the integer, not borrow a reference
     }
@@ -325,8 +367,10 @@ fn testStructLifetime_correct1() {
     let s;
     {
         let x = 10;
+        //s's lifetime is extended to the outer scope.
         s = S { r: x }; // copy x into the struct
     }
+    //s's lifetime now can outlive x, because s owns its data.
     println!("{}", s.r); // OK — s owns its data
 }
 
@@ -350,7 +394,20 @@ fn testStructLifetime_correct2() {
     let x = 10; // ❗ Move `x` OUTSIDE the inner block
     {
         //  let x = 10; // ❗ Move `x` OUTSIDE the inner block
+        // s cannot outlive x now
         s = S { r: &x }; //  borrow x into s.r
     }
     assert_eq!(*s.r, 10); // bad: reads from dropped `x`
+}
+
+fn testStructLifetime_string() {
+    struct S {
+        r: String,
+    }
+    let s;
+    {
+        let x: String = "world".to_string();
+        s = S { r: x };
+    }
+    assert_eq!(*s.r, "world".to_string());
 }
